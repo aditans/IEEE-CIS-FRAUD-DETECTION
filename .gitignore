@@ -1,0 +1,12 @@
+__pycache__
+venv/
+data/
+.context/
+
+# Large training artifacts
+artifacts/*.pkl
+artifacts/*.pt
+
+# Keep lightweight report outputs tracked
+!artifacts/results_section.md
+!artifacts/federated_round_metrics.csv
