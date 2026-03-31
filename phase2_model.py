@@ -257,16 +257,28 @@ def evaluate(model, graph, mask):
 
         # Guard against all-one-class in small masks
         if len(np.unique(y_true)) < 2:
-            return {'auc_pr': 0, 'auc_roc': 0,
-                    'f2': 0, 'recall': 0, 'precision': 0}
+            return {
+                'auc_pr': 0,
+                'auc_roc': 0,
+                'f2': 0,
+                'recall': 0,
+                'precision': 0,
+                'tn': 0,
+                'fp': 0,
+                'fn': 0,
+                'tp': 0,
+                'fpr': 0,
+            }
 
         # F2-score: weights recall 2x over precision
         # F2 = (1+beta^2) * P * R / (beta^2 * P + R), beta=2
-        tp = np.sum((y_true == 1) & (y_pred == 1))
-        fp = np.sum((y_true == 0) & (y_pred == 1))
-        fn = np.sum((y_true == 1) & (y_pred == 0))
+        tp = int(np.sum((y_true == 1) & (y_pred == 1)))
+        fp = int(np.sum((y_true == 0) & (y_pred == 1)))
+        fn = int(np.sum((y_true == 1) & (y_pred == 0)))
+        tn = int(np.sum((y_true == 0) & (y_pred == 0)))
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
         beta_sq = 4.0  # beta=2
         f2 = ((1 + beta_sq) * precision * recall / (beta_sq * precision + recall)
               if (beta_sq * precision + recall) > 0 else 0.0)
@@ -276,7 +288,12 @@ def evaluate(model, graph, mask):
             'auc_roc':   roc_auc_score(y_true, y_prob),
             'f2':        f2,
             'recall':    recall_score(y_true, y_pred, zero_division=0),
-            'precision': precision_score(y_true, y_pred, zero_division=0)
+            'precision': precision_score(y_true, y_pred, zero_division=0),
+            'tn': tn,
+            'fp': fp,
+            'fn': fn,
+            'tp': tp,
+            'fpr': fpr,
         }
 
 # ── 6. Training Loop ──────────────────────────────────────────
@@ -340,6 +357,8 @@ print(f"  AUC-ROC:              {test_metrics['auc_roc']:.4f}")
 print(f"  F2-Score  (primary):  {test_metrics['f2']:.4f}")
 print(f"  Recall:               {test_metrics['recall']:.4f}")
 print(f"  Precision:            {test_metrics['precision']:.4f}")
+print(f"  FPR:                  {test_metrics['fpr']:.4f}")
+print(f"  Confusion Matrix:     TN={test_metrics['tn']} FP={test_metrics['fp']} FN={test_metrics['fn']} TP={test_metrics['tp']}")
 print("="*50)
 
 # Save metrics for Phase 3 comparison
